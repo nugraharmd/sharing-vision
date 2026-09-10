@@ -1,0 +1,54 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: article-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: article
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./migrations/000001_create_posts_up.sql:/docker-entrypoint-initdb.d/01-create-posts.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  article-service:
+    build: .
+    container_name: article-service
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      APP_PORT: 8081
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: article
+      GIN_MODE: release
+    ports:
+      - "8081:8081"
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    container_name: api-gateway
+    restart: unless-stopped
+    depends_on:
+      - article-service
+    environment:
+      GATEWAY_PORT: 8080
+      ARTICLE_SERVICE_URL: http://article-service:8081
+      GIN_MODE: release
+    ports:
+      - "8080:8080"
+
+volumes:
+  mysql_data:

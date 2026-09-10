@@ -1,0 +1,15 @@
+CREATE DATABASE IF NOT EXISTS `article` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+USE `article`;
+
+CREATE TABLE IF NOT EXISTS `posts` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `title` VARCHAR(255) NOT NULL,
+  `content` TEXT NOT NULL,
+  `category` VARCHAR(100) NOT NULL,
+  `status` VARCHAR(100) NOT NULL,
+  `created_date` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_date` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `chk_posts_status` CHECK (`status` IN ('publish', 'draft', 'thrash'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
