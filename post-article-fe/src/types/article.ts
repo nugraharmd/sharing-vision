@@ -1,8 +1,8 @@
 // DTOs mirroring post-article-be (Go: internal/dto + pkg/response).
 
-export type ArticleStatus = "publish" | "draft" | "thrash";
+export type ArticleStatus = "publish" | "draft" | "trash";
 
-export const STATUSES: ArticleStatus[] = ["publish", "draft", "thrash"];
+export const STATUSES: ArticleStatus[] = ["publish", "draft", "trash"];
 
 export interface Article {
   id: number;
@@ -38,10 +38,10 @@ export interface CreateArticleRequest {
 
 export type UpdateArticleRequest = CreateArticleRequest;
 
-export type TabKey = "publish" | "draft" | "thrash";
+export type TabKey = "publish" | "draft" | "trash";
 
 export const TABS: { key: TabKey; label: string }[] = [
   { key: "publish", label: "Published" },
   { key: "draft", label: "Draft" },
-  { key: "thrash", label: "Trashed" },
+  { key: "trash", label: "Trashed" },
 ];

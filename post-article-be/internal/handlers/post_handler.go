@@ -34,7 +34,7 @@ func (h *PostHandler) Create(c *gin.Context) {
 	response.Success(c, http.StatusCreated, "article created", res)
 }
 
-// GET /article/:limit/:offset
+// GET /article/:limit/:offset[?status=publish|draft|trash]
 func (h *PostHandler) List(c *gin.Context) {
 	limit, err1 := strconv.Atoi(c.Param("limit"))
 	offset, err2 := strconv.Atoi(c.Param("offset"))
@@ -42,9 +42,11 @@ func (h *PostHandler) List(c *gin.Context) {
 		response.Fail(c, http.StatusBadRequest, "limit and offset must be integers")
 		return
 	}
-	res, err := h.svc.List(limit, offset)
+	status := c.Query("status")
+	res, err := h.svc.List(limit, offset, status)
 	if err != nil {
-		response.Fail(c, http.StatusInternalServerError, err.Error())
+		// Status validation errors are client errors (400).
+		response.Fail(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	response.Paginated(c, "articles retrieved", res, limit, offset, len(res))
@@ -93,14 +95,16 @@ func (h *PostHandler) Update(c *gin.Context) {
 	response.Success(c, http.StatusOK, "article updated", res)
 }
 
-// DELETE /article/:id
+// DELETE /article/:id — soft-delete (status -> trash) by default;
+// pass ?hard=true for a permanent delete.
 func (h *PostHandler) Delete(c *gin.Context) {
 	id64, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		response.Fail(c, http.StatusBadRequest, "id must be an integer")
 		return
 	}
-	if err := h.svc.Delete(uint(id64)); err != nil {
+	hard := c.Query("hard") == "true"
+	if err := h.svc.Delete(uint(id64), hard); err != nil {
 		if errors.Is(err, services.ErrNotFound) {
 			response.Fail(c, http.StatusNotFound, "post not found")
 			return
@@ -108,5 +112,9 @@ func (h *PostHandler) Delete(c *gin.Context) {
 		response.Fail(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	response.Success(c, http.StatusOK, "article deleted", gin.H{"id": id64})
+	if hard {
+		response.Success(c, http.StatusOK, "article permanently deleted", gin.H{"id": id64})
+		return
+	}
+	response.Success(c, http.StatusOK, "article moved to trash", gin.H{"id": id64})
 }

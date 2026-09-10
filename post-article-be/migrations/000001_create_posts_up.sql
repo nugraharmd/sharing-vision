@@ -11,5 +11,5 @@ CREATE TABLE IF NOT EXISTS `posts` (
   `created_date` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_date` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  CONSTRAINT `chk_posts_status` CHECK (`status` IN ('publish', 'draft', 'thrash'))
+  CONSTRAINT `chk_posts_status` CHECK (`status` IN ('publish', 'draft', 'trash'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

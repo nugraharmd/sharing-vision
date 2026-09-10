@@ -17,7 +17,7 @@ export default function CreateArticlePage() {
     setServerError(null);
     try {
       await articleApi.create({ ...values, status });
-      router.push(`/posts?tab=${status === "thrash" ? "draft" : status}`);
+      router.push(`/posts?tab=${status === "trash" ? "draft" : status}`);
     } catch (e) {
       setServerError(e instanceof Error ? e.message : "Failed to create article.");
     } finally {

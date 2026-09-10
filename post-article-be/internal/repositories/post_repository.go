@@ -17,9 +17,13 @@ func (r *PostRepository) Create(p *models.Post) error {
 	return r.db.Create(p).Error
 }
 
-func (r *PostRepository) FindAll(limit, offset int) ([]models.Post, error) {
+func (r *PostRepository) FindAll(limit, offset int, status string) ([]models.Post, error) {
 	var posts []models.Post
-	err := r.db.Order("created_date DESC").Limit(limit).Offset(offset).Find(&posts).Error
+	q := r.db.Order("created_date DESC").Limit(limit).Offset(offset)
+	if status != "" {
+		q = q.Where("status = ?", status)
+	}
+	err := q.Find(&posts).Error
 	return posts, err
 }
 

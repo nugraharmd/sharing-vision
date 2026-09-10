@@ -12,6 +12,9 @@ const API_BASE =
 
 export const PAGE_SIZE = 10;
 
+/** Max rows pulled for FE-only search (BE caps limit at 100). */
+export const SEARCH_LIMIT = 100;
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
@@ -50,7 +53,7 @@ export const articleApi = {
     });
   },
 
-  /** Soft-delete: moves the record to trash (status -> thrash). */
+  /** Soft-delete: moves the record to trash (status -> trash). */
   trash(id: number) {
     return request<{ id: number }>(`/article/${id}`, { method: "DELETE" });
   },

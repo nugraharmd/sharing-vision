@@ -62,7 +62,7 @@ func (s *PostService) Create(req dto.CreatePostRequest) (*dto.PostResponse, erro
 	return &res, nil
 }
 
-func (s *PostService) List(limit, offset int) ([]dto.PostResponse, error) {
+func (s *PostService) List(limit, offset int, status string) ([]dto.PostResponse, error) {
 	if limit <= 0 {
 		limit = 10
 	}
@@ -72,7 +72,14 @@ func (s *PostService) List(limit, offset int) ([]dto.PostResponse, error) {
 	if offset < 0 {
 		offset = 0
 	}
-	posts, err := s.repo.FindAll(limit, offset)
+	if status != "" {
+		switch status {
+		case dto.StatusPublish, dto.StatusDraft, dto.StatusTrash:
+		default:
+			return nil, errors.New("status must be one of: publish, draft, trash")
+		}
+	}
+	posts, err := s.repo.FindAll(limit, offset, status)
 	if err != nil {
 		return nil, err
 	}
@@ -117,12 +124,18 @@ func (s *PostService) Update(id uint, req dto.UpdatePostRequest) (*dto.PostRespo
 	return &res, nil
 }
 
-func (s *PostService) Delete(id uint) error {
-	if _, err := s.repo.FindByID(id); err != nil {
+func (s *PostService) Delete(id uint, hard bool) error {
+	p, err := s.repo.FindByID(id)
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ErrNotFound
 		}
 		return err
 	}
-	return s.repo.Delete(id)
+	if hard {
+		return s.repo.Delete(id)
+	}
+	// Soft-delete: move to trash instead of removing the row.
+	p.Status = dto.StatusTrash
+	return s.repo.Update(p)
 }

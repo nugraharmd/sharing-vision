@@ -19,6 +19,16 @@ Article CRUD system built with **Go + Gin + GORM + MySQL**, structured as **micr
 
 Both services share the base-response envelope in `pkg/response` so clients parse one shape no matter which service answers.
 
+## Why no gRPC (decision)
+
+gRPC was evaluated for gateway → article-service traffic and deliberately **not** implemented:
+
+- The public contract must stay **REST/JSON** per spec (endpoints + Postman collection target HTTP).
+- There is only **one** internal hop with plain CRUD payloads — gRPC would add proto/codegenOps overhead with no measurable gain.
+- The gateway is a transparent reverse proxy; protobuf buys nothing until there are multiple typed internal services, streaming, or polyglot backends.
+
+If that changes, the migration path is: add `proto/article.proto`, generate with `protoc-gen-go`/`protoc-gen-go-grpc`, serve gRPC from article-service (new port), and let the gateway translate REST ↔ gRPC. Until then, REST + Postman collection stays the contract.
+
 ## Base response
 
 Every endpoint returns this envelope (success and error alike):
@@ -38,7 +48,7 @@ Every endpoint returns this envelope (success and error alike):
 - `GET /article/:limit/:offset` → `200` + `"articles retrieved"` + `meta {limit, offset, count}`
 - `GET /article/:id` → `200` + `"article retrieved"`
 - `PUT|PATCH /article/:id` → `200` + `"article updated"`
-- `DELETE /article/:id` → `200` + `"article deleted"`, `data: {"id": N}`
+- `DELETE /article/:id` → `200` + `"article moved to trash"`, `data: {"id": N}` (soft-delete, row kept with `status=trash`); `DELETE /article/:id?hard=true` → `"article permanently deleted"`
 - Validation / bad input → `400`, unknown id → `404`, gateway can't reach article-service → `502` (same envelope)
 - `GET /health` (both services) → `200` + `"ok"`; the gateway's `data` also includes downstream `article_service` status (`up` / `down: ...`)
 
@@ -82,7 +92,7 @@ post-article-be/
 | title | VARCHAR(255) | required, min 20 chars |
 | content | TEXT | required, min 200 chars |
 | category | VARCHAR(100) | required, min 3 chars |
-| status | VARCHAR(100) | required, one of `publish`, `draft`, `thrash` |
+| status | VARCHAR(100) | required, one of `publish`, `draft`, `trash` |
 | created_date | TIMESTAMP | auto |
 | updated_date | TIMESTAMP | auto |
 
@@ -94,11 +104,11 @@ post-article-be/
 | Method | Path | Description |
 |---|---|---|
 | POST | `/article` | Create article |
-| GET | `/article/:limit/:offset` | List articles (e.g. `/article/10/0`) |
+| GET | `/article/:limit/:offset` | List articles (e.g. `/article/10/0`); optional `?status=publish\|draft\|trash` filter |
 | GET | `/article/:id` | Get by ID |
 | PUT | `/article/:id` | Full update |
 | PATCH | `/article/:id` | Same as PUT (full object per spec) |
-| DELETE | `/article/:id` | Delete |
+| DELETE | `/article/:id` | Soft-delete → moves to `trash`; `?hard=true` for permanent delete |
 | GET | `/health` | Gateway + downstream health |
 
 Request — create / update:

@@ -32,9 +32,24 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
     setServerError(null);
     try {
       await articleApi.update(post.id, { ...values, status });
-      router.push(`/posts?tab=${status === "thrash" ? "draft" : status}`);
+      router.push(`/posts?tab=${status === "trash" ? "draft" : status}`);
     } catch (e) {
       setServerError(e instanceof Error ? e.message : "Failed to update article.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleTrash() {
+    if (!post) return;
+    if (!window.confirm(`Move "${post.title}" to trash?`)) return;
+    setSubmitting(true);
+    setServerError(null);
+    try {
+      await articleApi.trash(post.id);
+      router.push("/posts?tab=trash");
+    } catch (e) {
+      setServerError(e instanceof Error ? e.message : "Failed to move article to trash.");
     } finally {
       setSubmitting(false);
     }
@@ -47,6 +62,14 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
     <>
       <div className="page-head">
         <h1>Edit Article</h1>
+        <button
+          type="button"
+          className="btn btn--danger-outline"
+          disabled={submitting}
+          onClick={handleTrash}
+        >
+          Move to Trash
+        </button>
       </div>
       <PostForm
         initial={{ title: post.title, content: post.content, category: post.category }}
